@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">CGJ</string>
+    
+    <!-- Notifications -->
+    <string name="vplan_channel_name">Vertretungsplan-Updates</string>
+    <string name="vplan_channel_description">Benachrichtigt dich, wenn ein neuer Vertretungsplan veröffentlicht wird.</string>
+    <string name="notification_vplan_title">Neuer Vertretungsplan verfügbar</string>
+    <string name="notification_vplan_text">Tippen zum Anzeigen im CGJ.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Willkommen</string>
+    <string name="onboarding_subtitle">Aktiviere Benachrichtigungen, um neue Vertretungspläne automatisch zu erhalten.</string>
+    <string name="onboarding_benefit_vplan">Sofortige Benachrichtigung bei neuem Vertretungsplan</string>
+    <string name="onboarding_benefit_others">Direkter Zugriff auf Essen, Moodle und Leistungsnachweise</string>
+    <string name="onboarding_permission_rationale">Wir benötigen die Berechtigung, um Benachrichtigungen zu senden.</string>
+    <string name="onboarding_cta_enable">Benachrichtigungen aktivieren</string>
+    <string name="onboarding_cta_continue">Weiter</string>
 </resources>
