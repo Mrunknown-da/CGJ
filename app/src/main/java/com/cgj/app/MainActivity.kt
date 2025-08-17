@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -63,11 +64,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
+import com.cgj.app.dataStore
 import com.cgj.app.ui.theme.CGJTheme
 import com.github.barteksc.pdfviewer.PDFView
 import java.io.BufferedInputStream
@@ -77,6 +76,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
@@ -85,8 +85,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTransformGestures
+import com.cgj.app.notifications.NotificationHelper
+import com.cgj.app.background.PlanUpdateWorker
 
-val android.content.Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+// DataStore defined at top-level package in separate files; using extension imported via com.cgj.app.dataStore
 private val USE_GREEN_THEME = booleanPreferencesKey("use_green_theme")
 private val MOODLE_EMBED = booleanPreferencesKey("moodle_embed")
 private const val GRADES_BASE_URL = "https://www.c-g-j.de"
@@ -187,10 +189,18 @@ private fun openMoodleApp(context: Context) {
     }
 }
 
+/**
+ * Main activity hosting the Compose content. Shows onboarding until completed, then the main tabs.
+ * After onboarding, schedules background work for plan updates if notifications are enabled.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installSplashScreen()
         enableEdgeToEdge()
+        
+        // Create notification channel early
+        NotificationHelper.createNotificationChannel(this)
         
         // Enable Cookies and WebView Storage
         CookieManager.getInstance().apply {
@@ -210,33 +220,63 @@ class MainActivity : ComponentActivity() {
                     preferences[MOODLE_EMBED] ?: false
                 }
                 .collectAsState(initial = false)
+            val onboardingDone by dataStore.data
+                .map { it[booleanPreferencesKey("onboarding_done")] ?: false }
+                .collectAsState(initial = false)
             
             CGJTheme(
                 dynamicColor = !useGreenTheme
             ) {
-                MainScreen(
-                    useGreenTheme = useGreenTheme,
-                    onThemeChange = { newValue ->
-                        CoroutineScope(Dispatchers.IO).launch {
-                            dataStore.edit { preferences ->
-                                preferences[USE_GREEN_THEME] = newValue
-                            }
-                        }
-                    },
-                    embedMoodle = embedMoodle,
-                    onMoodleEmbedChange = { newValue ->
-                        CoroutineScope(Dispatchers.IO).launch {
-                            dataStore.edit { preferences ->
-                                preferences[MOODLE_EMBED] = newValue
-                            }
+                androidx.compose.runtime.LaunchedEffect(onboardingDone) {
+                    if (onboardingDone) {
+                        val enabled = dataStore.data.map { it[booleanPreferencesKey("notifications_enabled")] ?: false }.first()
+                        if (enabled) {
+                            PlanUpdateWorker.schedule(this@MainActivity)
+                        } else {
+                            PlanUpdateWorker.cancel(this@MainActivity)
                         }
                     }
-                )
+                }
+                if (!onboardingDone) {
+                    com.cgj.app.onboarding.OnboardingScreen(onFinished = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val enabled = dataStore.data.map { it[booleanPreferencesKey("notifications_enabled")] ?: false }.first()
+                            if (enabled) {
+                                PlanUpdateWorker.schedule(this@MainActivity)
+                            } else {
+                                PlanUpdateWorker.cancel(this@MainActivity)
+                            }
+                        }
+                    })
+                } else {
+                    MainScreen(
+                        useGreenTheme = useGreenTheme,
+                        onThemeChange = { newValue ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                dataStore.edit { preferences ->
+                                    preferences[USE_GREEN_THEME] = newValue
+                                }
+                            }
+                        },
+                        embedMoodle = embedMoodle,
+                        onMoodleEmbedChange = { newValue ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                dataStore.edit { preferences ->
+                                    preferences[MOODLE_EMBED] = newValue
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }
 }
 
+/**
+ * Root composable for the app UI tabs.
+ * Supports receiving an initial tab selection via activity intent extra "selected_tab".
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -245,10 +285,14 @@ fun MainScreen(
     embedMoodle: Boolean,
     onMoodleEmbedChange: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        val initial = (context as? android.app.Activity)?.intent?.getIntExtra("selected_tab", 0) ?: 0
+        selectedTab = initial
+    }
     var showMenu by remember { mutableStateOf(false) }
     var selectedGradesTab by remember { mutableStateOf(0) }
-    val context = LocalContext.current
     
     val tabs = listOf(
         TabItem("Vertretung", R.drawable.ic_substitution),

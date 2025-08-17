@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">CGJ</string>
+    <string name="channel_plan_updates_name">Plan-Updates</string>
+    <string name="channel_plan_updates_description">Benachrichtigt dich, wenn ein neuer Vertretungsplan verfügbar ist.</string>
+    <string name="notif_title_new_plan">Neuer Vertretungsplan</string>
+    <string name="notif_body_new_plan">Tippe, um den aktuellen Vertretungsplan zu öffnen.</string>
+    <string name="onboarding_title_1">Immer informiert</string>
+    <string name="onboarding_body_1">Erhalte Benachrichtigungen, sobald sich dein Vertretungsplan ändert.</string>
+    <string name="onboarding_title_2">Benachrichtigungen</string>
+    <string name="onboarding_body_2">Wir benötigen deine Erlaubnis, Benachrichtigungen zu senden.</string>
+    <string name="onboarding_title_3">Fertig</string>
+    <string name="onboarding_body_3">Du kannst das später in den Einstellungen ändern.</string>
+    <string name="action_continue">Weiter</string>
+    <string name="action_allow">Erlauben</string>
+    <string name="action_finish">Fertig</string>
 </resources>
