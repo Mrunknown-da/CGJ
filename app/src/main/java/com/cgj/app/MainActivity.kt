@@ -210,28 +210,42 @@ class MainActivity : ComponentActivity() {
                     preferences[MOODLE_EMBED] ?: false
                 }
                 .collectAsState(initial = false)
+
+            val onboardingDone by dataStore.data
+                .map { preferences ->
+                    preferences[com.cgj.app.ONBOARDING_DONE] ?: false
+                }
+                .collectAsState(initial = false)
             
             CGJTheme(
                 dynamicColor = !useGreenTheme
             ) {
-                MainScreen(
-                    useGreenTheme = useGreenTheme,
-                    onThemeChange = { newValue ->
-                        CoroutineScope(Dispatchers.IO).launch {
-                            dataStore.edit { preferences ->
-                                preferences[USE_GREEN_THEME] = newValue
-                            }
-                        }
-                    },
-                    embedMoodle = embedMoodle,
-                    onMoodleEmbedChange = { newValue ->
-                        CoroutineScope(Dispatchers.IO).launch {
-                            dataStore.edit { preferences ->
-                                preferences[MOODLE_EMBED] = newValue
-                            }
-                        }
+                if (!onboardingDone) {
+                    com.cgj.app.ui.OnboardingScreen()
+                } else {
+                    LaunchedEffect(Unit) {
+                        createNotificationChannel(this@MainActivity)
+                        SubstitutionCheckWorker.scheduleSubstitutionChecks(this@MainActivity)
                     }
-                )
+                    MainScreen(
+                        useGreenTheme = useGreenTheme,
+                        onThemeChange = { newValue ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                dataStore.edit { preferences ->
+                                    preferences[USE_GREEN_THEME] = newValue
+                                }
+                            }
+                        },
+                        embedMoodle = embedMoodle,
+                        onMoodleEmbedChange = { newValue ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                dataStore.edit { preferences ->
+                                    preferences[MOODLE_EMBED] = newValue
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }
