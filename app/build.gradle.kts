@@ -76,6 +76,17 @@ dependencies {
     // Image Loading
     implementation("io.coil-kt:coil-compose:2.5.0")
     
+    // WorkManager for background tasks
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // Lifecycle-aware components
+    implementation("androidx.lifecycle:lifecycle-service:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
+    
+    // Room for local storage of notification history
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

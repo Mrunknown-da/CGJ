@@ -69,6 +69,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.cgj.app.ui.theme.CGJTheme
+import com.cgj.app.ui.OnboardingScreen
+import com.cgj.app.ui.NotificationSettingsScreen
+import com.cgj.app.NotificationPreferences
 import com.github.barteksc.pdfviewer.PDFView
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
@@ -81,6 +84,7 @@ import java.io.IOException
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -248,7 +252,20 @@ fun MainScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var showMenu by remember { mutableStateOf(false) }
     var selectedGradesTab by remember { mutableStateOf(0) }
+    var showNotificationSettings by remember { mutableStateOf(false) }
+    var showOnboarding by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    
+    // Check if onboarding is completed
+    val preferences = remember { NotificationPreferences(context) }
+    val onboardingCompleted by preferences.onboardingCompleted.collectAsState(initial = false)
+    
+    // Show onboarding if not completed
+    LaunchedEffect(onboardingCompleted) {
+        if (!onboardingCompleted) {
+            showOnboarding = true
+        }
+    }
     
     val tabs = listOf(
         TabItem("Vertretung", R.drawable.ic_substitution),
@@ -382,6 +399,13 @@ fun MainScreen(
                                         showMenu = false
                                     }
                                 )
+                                DropdownMenuItem(
+                                    text = { Text("Benachrichtigungen") },
+                                    onClick = {
+                                        showNotificationSettings = true
+                                        showMenu = false
+                                    }
+                                )
                             }
                         }
                     }
@@ -476,6 +500,24 @@ fun MainScreen(
         BackHandler(enabled = selectedTab == 3 && selectedGradesTab > 0) {
             selectedGradesTab = 0
         }
+    }
+    
+    // Onboarding Dialog
+    if (showOnboarding) {
+        OnboardingScreen(
+            onOnboardingComplete = {
+                showOnboarding = false
+            }
+        )
+    }
+    
+    // Notification Settings Dialog
+    if (showNotificationSettings) {
+        NotificationSettingsScreen(
+            onBackPressed = {
+                showNotificationSettings = false
+            }
+        )
     }
 }
 
